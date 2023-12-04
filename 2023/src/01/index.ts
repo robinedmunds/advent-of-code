@@ -16,7 +16,7 @@ function partOne() {
         arr.filter((elem) => digits.includes(elem))
     )
     const numbers = filtered.map(
-        (elem) => +`${elem[0]}${elem[elem.length - 1]}`
+        (elem) => +elem[0].concat(elem[elem.length - 1])
     )
 
     return numbers.reduce((prev, curr) => prev + curr)
@@ -54,7 +54,7 @@ function partTwo() {
 
     const processed = []
     for (const word of lines) {
-        const values = []
+        const values: number[] = []
 
         for (let start = 0; start < word.length; start += 1) {
             for (let end = 1; end <= word.length; end += 1) {
@@ -66,14 +66,17 @@ function partTwo() {
                     continue
                 }
 
-                values.push(hm.get(word.slice(start, end)))
+                const int = hm.get(word.slice(start, end))
+                if (!int) throw "Hashmap return undefined"
+                values.push(int)
             }
         }
+
         processed.push(values)
     }
 
     const numbers = processed.map(
-        (elem) => +`${elem[0]}${elem[elem.length - 1]}`
+        (elem) => elem[0] * 10 + elem[elem.length - 1]
     )
 
     return numbers.reduce((prev, curr) => prev + curr)
