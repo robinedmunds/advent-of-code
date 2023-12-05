@@ -46,15 +46,13 @@ function partOne() {
 
     for (const seed of seeds) {
         const result: Map<string, number> = new Map()
-        let prevKey = undefined
+        let currSeed = seed
 
         for (const mapKey of maps.keys()) {
             const label = mapKey.split("-to-")[1]
-            result.set(
-                label,
-                calcDestination(result.get(prevKey) ?? seed, maps.get(mapKey))
-            )
-            prevKey = label
+            const nextSeed = calcDestination(currSeed, maps.get(mapKey))
+            result.set(label, nextSeed)
+            currSeed = nextSeed
         }
 
         results.push(result)
