@@ -36,8 +36,8 @@ function partOne() {
     // const raceRecords = parseInput("src/06/input.test.txt")
     const raceRecords = parseInput("src/06/input.txt")
     if (!raceRecords) throw "Parsing error"
-    const marginsOfError = []
 
+    const marginsOfError = []
     for (const record of raceRecords) {
         let hold = 1
         let distance = calcRaceDistance(hold, record.time)
@@ -58,8 +58,32 @@ function partOne() {
     return marginsOfError.reduce((prev, curr) => prev * curr)
 }
 
-function partTwo() {}
+function partTwo() {
+    // const raceRecords = parseInput("src/06/input.test.txt")
+    const raceRecords = parseInput("src/06/input.txt")
+    if (!raceRecords) throw "Parsing error"
+
+    const record: RaceResult = {
+        time: +raceRecords.map((o) => o.time).join(""),
+        distance: +raceRecords.map((o) => o.distance).join(""),
+    }
+
+    let hold = 1
+    let distance = calcRaceDistance(hold, record.time)
+
+    const results = []
+    while (distance > 0) {
+        if (distance > record.distance) {
+            results.push({ hold, distance })
+        }
+
+        hold += 1
+        distance = calcRaceDistance(hold, record.time)
+    }
+
+    return results.length
+}
 
 console.log("DAY 6")
 console.log(partOne())
-// console.log(partTwo())
+console.log(partTwo())
