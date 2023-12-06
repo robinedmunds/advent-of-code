@@ -75,23 +75,6 @@ function buildSeedRanges(seeds: number[]): Range[] {
     return output
 }
 
-function memoize(func: Function, maps: Map<string, number[][]>): Function {
-    const cache = new Map()
-
-    return (seed: number): any => {
-        const key = JSON.stringify(seed)
-
-        if (cache.has(key)) {
-            return cache.get(key)
-        }
-
-        const result: any = func(seed, maps)
-        cache.set(key, result)
-
-        return result
-    }
-}
-
 function calcSeedChain(seed: number, maps: Map<string, number[][]>): number {
     let currSeed = seed
 
@@ -101,6 +84,74 @@ function calcSeedChain(seed: number, maps: Map<string, number[][]>): number {
     }
 
     return currSeed
+}
+
+// function calcMapEnds(maps: Map<string, number[][]>) {
+//     const output: Map<
+//         string,
+//         {
+//             lowestSeed: number
+//             lowestSeedLocation: number
+//             highestSeed: number
+//             highestSeedLocation: number
+//         }[]
+//     > = new Map()
+
+//     for (const mapKey of maps.keys()) {
+//         const mapArr = maps.get(mapKey)
+//         if (!mapArr) throw "This can never happen!"
+
+//         const lines = []
+//         for (const map of mapArr) {
+//             const [dest, source, range] = map
+//             const lowestSeed = source
+//             const lowestSeedLocation = calcSeedChain(source, maps)
+//             const highestSeed = source + range - 1
+//             const highestSeedLocation = calcSeedChain(highestSeed, maps)
+//             lines.push({
+//                 lowestSeed,
+//                 lowestSeedLocation,
+//                 highestSeed,
+//                 highestSeedLocation,
+//             })
+//         }
+
+//         output.set(mapKey, lines)
+//     }
+
+//     console.log(output)
+
+//     return output
+// }
+
+function calcMapEnds(maps: Map<string, number[][]>) {
+    const output: {
+        lowestSeed: number
+        lowestSeedLocation: number
+        highestSeed: number
+        highestSeedLocation: number
+    }[] = []
+
+    const seedToSoil = maps.get("seed-to-soil")
+    if (!seedToSoil) throw "This can never happen!"
+
+    for (const map of seedToSoil) {
+        const [, source, range] = map
+        const lowestSeed = source
+        const lowestSeedLocation = calcSeedChain(source, maps)
+        const highestSeed = source + range - 1
+        const highestSeedLocation = calcSeedChain(highestSeed, maps)
+        output.push({
+            lowestSeed,
+            lowestSeedLocation,
+            highestSeed,
+            highestSeedLocation,
+        })
+    }
+
+    console.log(output)
+
+    return output
 }
 
 function flattenRanges(ranges: Range[]): Range[] {
@@ -125,24 +176,104 @@ function flattenRanges(ranges: Range[]): Range[] {
     return output
 }
 
+function binarySearch(
+    maps: Map<string, number[][]>,
+    range: Range,
+    smallest: number[],
+    curr: number
+) {
+    if (range.end - range.start <= 1) {
+        smallest.push(curr)
+
+        return
+    }
+
+    const half = Math.floor((range.end - range.start) / 2)
+    const quarter = Math.floor(half / 2)
+    const left = calcSeedChain(range.start + quarter, maps)
+    const right = calcSeedChain(range.end - quarter, maps)
+
+    if (left < right) {
+        binarySearch(
+            maps,
+            { start: range.start, end: range.start + half },
+            smallest,
+            left
+        )
+    } else {
+        binarySearch(
+            maps,
+            {
+                start: range.start + half + 1,
+                end: range.end,
+            },
+            smallest,
+            right
+        )
+    }
+}
+
 function partTwo() {
     const { seeds, maps } = parseInput("src/05/input.test.txt")
     // const { seeds, maps } = parseInput("src/05/input.txt")
-    const seedRanges = buildSeedRanges(seeds)
-    const memoCalcSeedChain = memoize(calcSeedChain, maps)
+    const seedRanges = flattenRanges(buildSeedRanges(seeds))
+    const smallest: number[] = []
 
-    let smallestLocation = Infinity
-    for (const { start, end } of flattenRanges(seedRanges)) {
-        for (let seed = start; seed <= end; seed += 1) {
-            const location = calcSeedChain(seed, maps)
+    const endMaps = calcMapEnds(maps)
 
-            if (location < smallestLocation) {
-                smallestLocation = location
+    for (const range of seedRanges) {
+        let lowest = Infinity
+
+        for (const endMap of endMaps) {
+            if (
+                // range fully enclosed by map
+                range.start > endMap.lowestSeed &&
+                range.end < endMap.highestSeed
+            ) {
+                continue
             }
+
+            if (
+                range.start <= endMap.lowestSeed &&
+                range.end >= endMap.highestSeed
+            ) {
+                // map fully enclosed by range
+
+                lowest = Math.min(
+                    lowest,
+                    endMap.lowestSeedLocation,
+                    endMap.highestSeedLocation
+                )
+            }
+
+            if (
+                range.start <= endMap.lowestSeed &&
+                range.end < endMap.highestSeed
+            ) {
+                lowest = Math.min(lowest, endMap.lowestSeedLocation)
+            }
+
+            if (
+                range.start > endMap.lowestSeed &&
+                range.end >= endMap.highestSeed
+            ) {
+                lowest = Math.min(lowest, endMap.highestSeedLocation)
+            }
+
+            smallest.push(lowest)
         }
     }
 
-    return smallestLocation
+    console.log(smallest)
+
+    // for (const range of seedRanges) {
+    //     // perform binary search for smallest location
+    //     binarySearch(maps, range, smallest, Infinity)
+    // }
+
+    // console.log(smallest)
+
+    // return Math.min(...smallest)
 }
 
 console.log("DAY 5")
