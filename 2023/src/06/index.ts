@@ -23,9 +23,39 @@ function parseInput(path: string) {
     return output
 }
 
+function calcRaceDistance(hold: number, time: number): number {
+    if (hold >= time) return 0
+
+    const timeInMotion = time - hold
+    const distance = hold * timeInMotion
+
+    return distance
+}
+
 function partOne() {
-    const raceRecords = parseInput("src/06/input.test.txt")
-    console.log(raceRecords)
+    // const raceRecords = parseInput("src/06/input.test.txt")
+    const raceRecords = parseInput("src/06/input.txt")
+    if (!raceRecords) throw "Parsing error"
+    const marginsOfError = []
+
+    for (const record of raceRecords) {
+        let hold = 1
+        let distance = calcRaceDistance(hold, record.time)
+
+        const results = []
+        while (distance > 0) {
+            if (distance > record.distance) {
+                results.push({ hold, distance })
+            }
+
+            hold += 1
+            distance = calcRaceDistance(hold, record.time)
+        }
+
+        marginsOfError.push(results.length)
+    }
+
+    return marginsOfError.reduce((prev, curr) => prev * curr)
 }
 
 function partTwo() {}
