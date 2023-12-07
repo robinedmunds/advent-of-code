@@ -2,34 +2,26 @@
 
 import readInputFile from "../readFile"
 
-const CARDS = [
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "T",
-    "J",
-    "Q",
-    "K",
-    "A",
-] as const
-
-type Card = (typeof CARDS)[number]
-type Hand = {
-    cards: [Card, Card, Card, Card, Card]
-    bid: number
+const CARD_VALUES = {
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    T: 10,
+    J: 11,
+    Q: 12,
+    K: 13,
+    A: 14,
 }
 
-function getCardValue(card: Card): number {
-    const idx = CARDS.indexOf(card)
-    if (idx === -1) throw "This can't happen."
-
-    return idx + 2
-}
+type Card = keyof typeof CARD_VALUES
+type Cards = [Card, Card, Card, Card, Card]
+type Hand = { cards: Cards; bid: number }
+type HandStrengths = Hand & { strength: number }
 
 function parseInput(path: string): Hand[] {
     const file = readInputFile(path)
@@ -45,92 +37,112 @@ function parseInput(path: string): Hand[] {
     })
 }
 
-function calcHandType(cards: Card[]): number {
-    const cardCount: Map<Card, number> = new Map()
+function calcSingleCardStrength(cards: Cards): number {
+    let strength = 0
+
+    for (let i = cards.length; i > 0; i -= 1) {
+        const value = CARD_VALUES[cards[cards.length - i]]
+        strength += value * i
+    }
+
+    return strength
+}
+
+function calcHandStrength(cards: Cards) {
+    const instanceCount: Map<Card, number> = new Map()
 
     for (const card of cards) {
-        const curr = cardCount.get(card) ?? 0
-        cardCount.set(card, curr + 1)
+        const currCount = instanceCount.get(card) ?? 0
+        instanceCount.set(card, currCount + 1)
     }
 
-    const countsDesc = [...cardCount.entries()].sort((a, b) => b[1] - a[1])
+    const instanceCountDesc = [...instanceCount.entries()].sort(
+        (a, b) => b[1] - a[1]
+    )
 
-    if (countsDesc[0][1] === 5) {
+    const firstCountCard: Card = instanceCountDesc[0][0]
+    const firstCount: number = instanceCountDesc[0][1]
+
+    const strength = calcSingleCardStrength(cards)
+
+    if (firstCount === 5) {
         // five-of-a-kind
-        return 10 ** 14 * getCardValue(countsDesc[0][0])
+        const multi = 8
+
+        return strength + 14 ** multi + CARD_VALUES[firstCountCard] * multi
     }
 
-    if (countsDesc[0][1] === 4) {
+    const secondCountCard: Card = instanceCountDesc[1][0]
+    const secondCount: number = instanceCountDesc[1][1]
+
+    if (firstCount === 4) {
         // four-of-a-kind
-        return 10 ** 12 * getCardValue(countsDesc[0][0])
+        const multi = 7
+
+        return strength + 14 ** multi + CARD_VALUES[firstCountCard] * multi
     }
 
-    if (countsDesc[0][1] === 3 && countsDesc[1][1] === 2) {
+    if (firstCount === 3 && secondCount === 2) {
         // full house
+        const multi = 6
+
         return (
-            10 ** 10 * getCardValue(countsDesc[0][0]) +
-            getCardValue(countsDesc[1][0])
+            strength +
+            14 ** multi +
+            (CARD_VALUES[firstCountCard] * multi +
+                CARD_VALUES[secondCountCard]) *
+                multi
         )
     }
 
-    if (countsDesc[0][1] === 3) {
+    if (firstCount === 3) {
         // three-of-a-kind
-        return 10 ** 8 * getCardValue(countsDesc[0][0])
+        const multi = 5
+
+        return strength + 14 ** multi + CARD_VALUES[firstCountCard] * multi
     }
 
-    if (countsDesc[0][1] === 2 && countsDesc[1][1] === 2) {
+    if (firstCount === 2 && secondCount === 2) {
         // two pair
+        const multi = 4
+
         return (
-            10 ** 6 * getCardValue(countsDesc[0][0]) +
-            getCardValue(countsDesc[1][0])
+            strength +
+            14 ** multi +
+            (CARD_VALUES[firstCountCard] * multi +
+                CARD_VALUES[secondCountCard]) *
+                multi
         )
     }
 
-    if (countsDesc[0][1] === 2) {
+    if (firstCount === 2) {
         // one pair
-        return 10 ** 4 * getCardValue(countsDesc[0][0])
+        const multi = 3
+
+        return strength + 14 ** 3 + CARD_VALUES[firstCountCard] * multi
     }
 
-    return countsDesc
-        .map(([card]) => getCardValue(card))
-        .reduce((prev, curr, idx, arr) => prev + curr * (arr.length - idx + 1))
+    return strength
 }
-
-function calcOrderValue(cards: Card[]): number {
-    let out = 0
-
-    for (let multiplier = cards.length; multiplier > 0; multiplier -= 1) {
-        out += multiplier * getCardValue(cards[cards.length - multiplier])
-    }
-
-    return out
-}
-
-type Winnings = Hand & { winnings: number }
 
 function partOne() {
     const hands = parseInput("src/07/input.test.txt")
     // const hands = parseInput("src/07/input.txt")
 
-    // calc and rank hand strengths
-    const out: Winnings[] = []
+    const out: HandStrengths[] = []
     for (const hand of hands) {
-        out.push({
-            ...hand,
-            winnings: calcHandType(hand.cards) + calcOrderValue(hand.cards),
-        })
+        out.push({ ...hand, strength: calcHandStrength(hand.cards) })
     }
 
-    out.sort((a, b) => a.winnings - b.winnings)
+    const sorted = out.sort((a, b) => a.strength - b.strength)
 
-    let totalWinnings = 0
-    for (let rank = 1; rank <= out.length; rank += 1) {
-        console.log(out[rank - 1], rank)
-
-        totalWinnings += out[rank - 1].bid * rank
+    const points = []
+    for (let rank = 1; rank <= sorted.length; rank += 1) {
+        const s = sorted[rank - 1]
+        points.push(s.bid * rank)
     }
 
-    return totalWinnings
+    return points.reduce((prev, curr) => prev + curr)
 }
 
 function partTwo() {}
