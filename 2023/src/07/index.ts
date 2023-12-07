@@ -18,10 +18,20 @@ const CARD_VALUES = {
     A: 14,
 }
 
+enum HAND_TYPES {
+    fiveOfAKind = 900,
+    fourOfAKind = 800,
+    fullHouse = 700,
+    threeOfAKind = 600,
+    twoPair = 500,
+    onePair = 400,
+    highCard = 300,
+}
+
 type Card = keyof typeof CARD_VALUES
 type Cards = [Card, Card, Card, Card, Card]
 type Hand = { cards: Cards; bid: number }
-type HandStrengths = Hand & { strength: number }
+type HandStrengths = Hand & { strength: HAND_TYPES }
 
 function parseInput(path: string): Hand[] {
     const file = readInputFile(path)
@@ -60,86 +70,66 @@ function calcHandStrength(cards: Cards) {
         (a, b) => b[1] - a[1]
     )
 
-    const firstCountCard: Card = instanceCountDesc[0][0]
     const firstCount: number = instanceCountDesc[0][1]
 
-    const strength = calcSingleCardStrength(cards)
-
     if (firstCount === 5) {
-        // five-of-a-kind
-        const multi = 8
-
-        return strength + 14 ** multi + CARD_VALUES[firstCountCard] * multi
+        return HAND_TYPES.fiveOfAKind
     }
 
-    const secondCountCard: Card = instanceCountDesc[1][0]
     const secondCount: number = instanceCountDesc[1][1]
 
     if (firstCount === 4) {
-        // four-of-a-kind
-        const multi = 7
-
-        return strength + 14 ** multi + CARD_VALUES[firstCountCard] * multi
+        return HAND_TYPES.fourOfAKind
     }
 
     if (firstCount === 3 && secondCount === 2) {
-        // full house
-        const multi = 6
-
-        return (
-            strength +
-            14 ** multi +
-            (CARD_VALUES[firstCountCard] * multi +
-                CARD_VALUES[secondCountCard]) *
-                multi
-        )
+        return HAND_TYPES.fullHouse
     }
 
     if (firstCount === 3) {
-        // three-of-a-kind
-        const multi = 5
-
-        return strength + 14 ** multi + CARD_VALUES[firstCountCard] * multi
+        return HAND_TYPES.threeOfAKind
     }
 
     if (firstCount === 2 && secondCount === 2) {
-        // two pair
-        const multi = 4
-
-        return (
-            strength +
-            14 ** multi +
-            (CARD_VALUES[firstCountCard] * multi +
-                CARD_VALUES[secondCountCard]) *
-                multi
-        )
+        return HAND_TYPES.twoPair
     }
 
     if (firstCount === 2) {
-        // one pair
-        const multi = 3
-
-        return strength + 14 ** 3 + CARD_VALUES[firstCountCard] * multi
+        return HAND_TYPES.onePair
     }
 
-    return strength
+    return HAND_TYPES.highCard
 }
 
 function partOne() {
-    const hands = parseInput("src/07/input.test.txt")
-    // const hands = parseInput("src/07/input.txt")
+    // const hands = parseInput("src/07/input.test.txt")
+    const hands = parseInput("src/07/input.txt")
 
-    const out: HandStrengths[] = []
+    const strengths: HandStrengths[] = []
     for (const hand of hands) {
-        out.push({ ...hand, strength: calcHandStrength(hand.cards) })
+        strengths.push({ ...hand, strength: calcHandStrength(hand.cards) })
     }
 
-    const sorted = out.sort((a, b) => a.strength - b.strength)
+    const strengthsAsc = [...strengths].sort((a, b) => {
+        const diff = a.strength - b.strength
+        if (diff !== 0) return diff
 
-    const points = []
-    for (let rank = 1; rank <= sorted.length; rank += 1) {
-        const s = sorted[rank - 1]
-        points.push(s.bid * rank)
+        for (let i = 0; i < a.cards.length; i += 1) {
+            const cardA = CARD_VALUES[a.cards[i]]
+            const cardB = CARD_VALUES[b.cards[i]]
+
+            if (cardA - cardB === 0) continue
+
+            return cardA - cardB
+        }
+
+        throw "strengthsAsc sort: This should never happen!"
+    })
+
+    const points: number[] = []
+    for (let rank = 1; rank <= strengthsAsc.length; rank += 1) {
+        const hand = strengthsAsc[rank - 1]
+        points.push(hand.bid * rank)
     }
 
     return points.reduce((prev, curr) => prev + curr)
