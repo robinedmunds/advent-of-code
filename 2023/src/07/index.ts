@@ -47,17 +47,6 @@ function parseInput(path: string): Hand[] {
     })
 }
 
-function calcSingleCardStrength(cards: Cards): number {
-    let strength = 0
-
-    for (let i = cards.length; i > 0; i -= 1) {
-        const value = CARD_VALUES[cards[cards.length - i]]
-        strength += value * i
-    }
-
-    return strength
-}
-
 function calcHandStrength(cards: Cards) {
     const instanceCount: Map<Card, number> = new Map()
 
