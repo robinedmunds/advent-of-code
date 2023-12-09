@@ -1,9 +1,6 @@
 // https://adventofcode.com/2023/day/8
 
-import { dir } from "console"
 import readInputFile from "../readFile"
-
-type LeftRight = [left: string, right: string]
 
 const FILTER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ " as const
 
@@ -22,153 +19,95 @@ function parseInput(path: string) {
             .filter((c) => c !== "")
     ) as [string, string, string][]
 
-    const hashMap: Map<string, LeftRight> = new Map()
-
-    for (let i = 0; i < map.length; i += 1) {
-        hashMap.set(map[i][0], map[i].slice(1, 3) as LeftRight)
-    }
-
-    return { directions, hashMap }
+    return { path: directions, map }
 }
 
-function breakDirections(directions: ("L" | "R")[]) {
-    const patterns: Map<string, number> = new Map()
+class BinaryTree {
+    size: number
+    nodes: string[]
+    edges: [left: number, right: number][]
+    path: ("L" | "R")[]
 
-    for (let start = 0; start < directions.length; start += 1) {
-        for (let end = start + 1; end <= directions.length; end += 1) {
-            if (end - start > Math.floor(Math.sqrt(directions.length))) break
-
-            const pattern = directions.slice(start, end).join("")
-            if ([...patterns.keys()].includes(pattern)) continue
-            // console.log(pattern)
-            let matches = 0
-
-            for (let i = 0; i + pattern.length <= directions.length; i += 1) {
-                if (
-                    directions.slice(i, i + pattern.length).join("") === pattern
-                ) {
-                    matches += 1
-                }
-            }
-
-            if (matches >= Math.floor(Math.sqrt(directions.length))) {
-                patterns.set(pattern, matches)
-            }
-        }
+    constructor(path: ("L" | "R")[]) {
+        this.size = 0
+        this.nodes = []
+        this.edges = []
+        this.path = path
     }
 
-    // directions to block refs
-
-    const refs: string[] = []
-    for (let start = 0; start < directions.length; start += 1) {
-        for (let end = directions.length; end > start; end -= 1) {
-            const key = directions.slice(start, end).join("")
-
-            if (patterns.has(key)) {
-                refs.push(key)
-                start = end - 1
-
-                break
+    private getNodeIdx(key: string) {
+        for (let i = 0; i < this.nodes.length; i += 1) {
+            if (this.nodes[i] === key) {
+                return i
             }
         }
+
+        return -1
     }
 
-    // console.log(refs)
-    // console.log(refs.join("").length, directions.length)
-
-    // console.log("matching?", refs.flat().join("") === directions.join(""))
-    // console.log(refs.flat().join(""))
-    // console.log(directions.join(""))
-
-    // const decimalUnique = (refs.length - new Set(refs).size) / refs.length
-    // console.log(decimalUnique, decimalUnique * refs.length)
-
-    return refs
-}
-
-function processBlock(
-    block: string,
-    hashMap: Map<string, LeftRight>,
-    stepKey: string
-) {
-    let stepCount = 0
-    let currStepKey = stepKey
-
-    for (let idx = 0; idx < block.length; idx += 1) {
-        const pair = hashMap.get(currStepKey)
-        if (!pair) throw "This should never happen!"
-        const [left, right] = pair
-
-        if (block[idx] === "L") {
-            currStepKey = left
+    public addNode(key: string, left: string, right: string) {
+        if (this.getNodeIdx(key) === -1) {
+            this.nodes.push(key)
+            this.size += 1
         }
 
-        if (block[idx] === "R") {
-            currStepKey = right
+        if (this.getNodeIdx(left) === -1) {
+            this.nodes.push(left)
+            this.size += 1
         }
 
-        stepCount += 1
+        if (this.getNodeIdx(right) === -1) {
+            this.nodes.push(right)
+            this.size += 1
+        }
 
-        if (currStepKey === "ZZZ") break
+        const leftIdx = this.getNodeIdx(left) as number
+        const rightIdx = this.getNodeIdx(right) as number
+
+        this.edges.push([leftIdx, rightIdx])
     }
 
-    return { stepCount, lastStepKey: currStepKey }
-}
+    public walkPath(): number {
+        const aaaIdx = this.getNodeIdx("AAA")
+        const zzzIdx = this.getNodeIdx("ZZZ")
 
-function memoProcessBlock(): Function {
-    // block: string,
-    // hashMap: Map<string, LeftRight>,
-    // stepKey: string
-    const cache = new Map()
+        let currIdx = aaaIdx
+        let pathIdx = 0
+        let count = 0
+        while (currIdx !== zzzIdx) {
+            const [left, right] = this.edges[currIdx]
 
-    return (
-        block: string,
-        hashMap: Map<string, LeftRight>,
-        stepKey: string
-    ) => {
-        const key = block + "_" + stepKey
+            if (this.path[pathIdx] === "L") {
+                currIdx = left
+            }
 
-        if (cache.has(key)) {
-            console.log(cache.size)
-            return cache.get(key)
+            if (this.path[pathIdx] === "R") {
+                currIdx = right
+            }
+
+            pathIdx += 1
+            if (pathIdx >= this.path.length) {
+                pathIdx = 0
+            }
+
+            count += 1
         }
 
-        const result = processBlock(block, hashMap, stepKey)
-        cache.set(key, result)
-
-        return result
+        return count
     }
 }
 
 function partOne() {
-    // const { directions, hashMap } = parseInput("src/08/input.test.txt")
-    // const { directions, hashMap } = parseInput("src/08/input.test2.txt")
-    const { directions, hashMap } = parseInput("src/08/input.txt")
-
-    const repeatingBlocks = breakDirections(directions)
-    console.log(repeatingBlocks)
-
-    let totalCount = 0
-    let stepKey = [...hashMap.keys()][0]
-    const memoized = memoProcessBlock()
-
-    while (stepKey !== "ZZZ") {
-        for (let i = 0; i < repeatingBlocks.length; i += 1) {
-            console.log(stepKey)
-            const { stepCount, lastStepKey } = memoized(
-                repeatingBlocks[i],
-                hashMap,
-                stepKey
-            )
-
-            totalCount += stepCount
-            stepKey = lastStepKey
-
-            if (lastStepKey === "ZZZ") break
-        }
+    // const { path, map } = parseInput("src/08/input.test.txt")
+    // const { path, map } = parseInput("src/08/input.test2.txt")
+    const { path, map } = parseInput("src/08/input.txt")
+    const binaryTree = new BinaryTree(path)
+    for (const [key, left, right] of map) {
+        binaryTree.addNode(key, left, right)
     }
-    console.log(stepKey)
-    console.log(totalCount)
+
+    console.log(binaryTree)
+    console.log(binaryTree.walkPath())
 }
 
 function partTwo() {}
