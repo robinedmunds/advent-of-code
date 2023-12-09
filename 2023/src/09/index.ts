@@ -55,11 +55,18 @@ function partOne(input: number[][]) {
     return histories.reduce((prev, curr) => prev + curr)
 }
 
-function partTwo() {}
+function partTwo(input: number[][]) {
+    const histories: number[] = []
+    for (const seq of input) {
+        histories.push(solveSequence(seq.reverse()))
+    }
+
+    return histories.reduce((prev, curr) => prev + curr)
+}
 
 const input = parseInput("src/09/input.txt")
-const input2 = parseInput("src/09/input.test.txt")
+// const input2 = parseInput("src/09/input.test.txt")
 
 console.log("DAY 9")
 console.log(partOne(input)) // 2008960228
-// console.log(partTwo())
+console.log(partTwo(input)) // 1097
