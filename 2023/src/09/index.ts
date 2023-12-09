@@ -9,54 +9,41 @@ function parseInput(path: string): number[][] {
     return file.split("\r\n").map((line) => line.split(" ").map((s) => +s))
 }
 
-function calcDifference(a: number, b: number): number {
-    const largest = Math.max(a, b)
-    const smallest = Math.min(a, b)
+function calcDiff(a: number, b: number): number {
+    const diff = Math.abs(a - b)
 
-    if (largest < 0 || smallest < 0) {
-        // one negative
-        return largest + Math.abs(smallest)
+    if (a - b > 0) {
+        return -diff
     }
-    // both positive or both negative
-    return largest - smallest
+
+    return diff
 }
 
 function solveSequence(seq: number[]): number {
-    const container: number[][] = [seq.slice()]
+    const pyramid: number[][] = [seq.slice()]
 
     // build inverted pyramid
-
     let rowIdx = 0
-    while (!container[container.length - 1].every((n) => n === 0)) {
+    while (!pyramid[pyramid.length - 1].every((n) => n === 0)) {
         const newRow = []
-        for (let i = 0; i < container[rowIdx].length - 1; i += 1) {
-            newRow.push(
-                calcDifference(container[rowIdx][i], container[rowIdx][i + 1])
-            )
+        for (let i = 0; i < pyramid[rowIdx].length - 1; i += 1) {
+            newRow.push(calcDiff(pyramid[rowIdx][i], pyramid[rowIdx][i + 1]))
         }
-
-        container.push(newRow)
+        pyramid.push(newRow)
         rowIdx += 1
     }
 
     // add right-most elements, bottom to top
-
-    container[rowIdx].push(0)
-    let diff = container[rowIdx - 1][container[rowIdx - 1].length - 1]
-
+    pyramid[rowIdx].push(0)
     while (rowIdx > 0) {
-        diff = container[rowIdx][container[rowIdx].length - 1]
-        container[rowIdx - 1].push(
-            container[rowIdx - 1][container[rowIdx - 1].length - 1] + diff
+        const lastIdx = pyramid[rowIdx].length - 1
+        pyramid[rowIdx - 1].push(
+            pyramid[rowIdx][lastIdx] + pyramid[rowIdx - 1][lastIdx]
         )
         rowIdx -= 1
     }
 
-    // for (const was of container) {
-    //     console.log(was.length, was)
-    // }
-
-    return container[0][container[0].length - 1]
+    return pyramid[0][pyramid[0].length - 1]
 }
 
 function partOne(input: number[][]) {
@@ -70,10 +57,9 @@ function partOne(input: number[][]) {
 
 function partTwo() {}
 
-const input = parseInput("src/09/input.test.txt")
-const input2 = parseInput("src/09/input.txt")
+const input = parseInput("src/09/input.txt")
+const input2 = parseInput("src/09/input.test.txt")
 
 console.log("DAY 9")
-console.log(partOne(input))
-console.log(partOne(input2))
+console.log(partOne(input)) // 2008960228
 // console.log(partTwo())
