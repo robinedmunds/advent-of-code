@@ -3,6 +3,7 @@
 import readInputFile from "../readFile"
 
 const CARDS = "23456789TJQKA" as const
+const CARDS_JOKER = "J23456789TQKA" as const
 const HAND_TYPES = [
     "high-card",
     "one-pair",
@@ -47,12 +48,22 @@ function parseInput(path: string): Hand[] {
     })
 }
 
-function processHandType(hand: Hand) {
+function processHandType(hand: Hand, joker?: boolean) {
     const cardCounts: number[] = Array(CARDS.length).fill(0)
 
     for (const card of hand.cards) {
         const cardIdx = CARDS.indexOf(card)
         cardCounts[cardIdx] += 1
+    }
+
+    const jokerIdx = CARDS.indexOf("J")
+    const jokerCount = joker === true ? cardCounts[jokerIdx] : 0
+    if (joker === true) {
+        for (let i = 0; i < cardCounts.length; i += 1) {
+            if (i === jokerIdx) continue
+            if (cardCounts[i] === 0) continue
+            cardCounts[i] += jokerCount
+        }
     }
 
     cardCounts.sort((a, b) => b - a) //desc
@@ -65,7 +76,7 @@ function processHandType(hand: Hand) {
         return { ...hand, type: "four-of-a-kind" } as HandWithType
     }
 
-    if (cardCounts[0] >= 3 && cardCounts[1] >= 2) {
+    if (cardCounts[0] >= 3 && cardCounts[1] - jokerCount >= 2) {
         return { ...hand, type: "full-house" } as HandWithType
     }
 
@@ -73,7 +84,7 @@ function processHandType(hand: Hand) {
         return { ...hand, type: "three-of-a-kind" } as HandWithType
     }
 
-    if (cardCounts[0] >= 2 && cardCounts[1] >= 2) {
+    if (cardCounts[0] >= 2 && cardCounts[1] - jokerCount >= 2) {
         return { ...hand, type: "two-pair" } as HandWithType
     }
 
@@ -101,6 +112,23 @@ function customSortAsc(a: HandWithType, b: HandWithType): number {
     return A - B
 }
 
+function customSortAscJoker(a: HandWithType, b: HandWithType): number {
+    let A = (HAND_TYPES.indexOf(a.type) + 1) * 10000
+    let B = (HAND_TYPES.indexOf(b.type) + 1) * 10000
+
+    for (let i = a.cards.length; i > 0; i -= 1) {
+        const cardA = CARDS_JOKER.indexOf(a.cards[a.cards.length - i])
+        const cardB = CARDS_JOKER.indexOf(b.cards[a.cards.length - i])
+
+        A += cardA + i
+        B += cardB + i
+
+        if (A - B !== 0) return A - B
+    }
+
+    return A - B
+}
+
 function partOne(input: Hand[]) {
     const hands: HandWithType[] = input
         .map((h) => processHandType(h))
@@ -114,12 +142,21 @@ function partOne(input: Hand[]) {
     return bidTotal
 }
 
-function partTwo(hands: Hand[]) {}
+function partTwo(input: Hand[]) {
+    const hands: HandWithType[] = input
+        .map((h) => processHandType(h, true))
+        .sort(customSortAscJoker)
 
-const handsTest = parseInput("src/07/input.test.txt")
+    let bidTotal: number = 0
+    for (let rank = 1; rank <= hands.length; rank += 1) {
+        bidTotal += rank * hands[rank - 1].bid
+    }
+
+    return bidTotal
+}
+
 const hands = parseInput("src/07/input.txt")
 
 console.log("DAY 7")
 console.log(partOne(hands))
-// console.log(partTwo(handsTest))
-// console.log(partTwo(hands))
+console.log(partTwo(hands))
