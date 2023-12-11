@@ -106,17 +106,25 @@ function partOne(input: string[]) {
     // console.log(start)
 
     let heading: Heading = "up"
-    if (["-", "F"].includes(input[start.y][start.x - 1])) {
-        heading = "left"
+    if (start.x > 0) {
+        if (["-", "F"].includes(input[start.y][start.x - 1])) {
+            heading = "left"
+        }
     }
-    if (["|", "L", "J"].includes(input[start.y + 1][start.x])) {
-        heading = "down"
+    if (start.y < input.length - 1) {
+        if (["|", "L", "J"].includes(input[start.y + 1][start.x])) {
+            heading = "down"
+        }
     }
-    if (["-", "7"].includes(input[start.y][start.x + 1])) {
-        heading = "right"
+    if (start.x < input[0].length - 1) {
+        if (["-", "7"].includes(input[start.y][start.x + 1])) {
+            heading = "right"
+        }
     }
-    if (["|", "F", "7"].includes(input[start.y - 1][start.x])) {
-        heading = "up"
+    if (start.y > 0) {
+        if (["|", "F", "7"].includes(input[start.y - 1][start.x])) {
+            heading = "up"
+        }
     }
 
     const path: Coords[] = [start]
@@ -152,12 +160,12 @@ function partOne(input: string[]) {
 
 function partTwo(input: string[]) {}
 
-const inputTest = parseInput("src/10/input.test.txt")
-const input = parseInput("src/10/input.txt")
+const inputTest = parseInput("src/10/input.test3.txt")
+// const input = parseInput("src/10/input.txt")
 
 console.log("DAY 10")
 console.log(partOne(inputTest))
-console.log(partOne(input))
+// console.log(partOne(input))
 // console.log(partTwo(hands))
 
 // -L|F7
