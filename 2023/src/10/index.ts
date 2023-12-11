@@ -2,12 +2,6 @@
 
 import readInputFile from "../readFile"
 
-// enum Heading {
-//     Right,
-//     Down,
-//     Left,
-//     Up,
-// }
 type Coords = { x: number; y: number }
 const direction = {
     up: { x: 0, y: -1 } as Coords,
@@ -33,82 +27,70 @@ function printBoard(board: string[]): void {
     console.log()
 }
 
-function walk(board: string[], path: Coords[], heading: Heading, curr: Coords) {
-    // if next tile is NOT pipe, return null
+function walk(
+    board: string[],
+    path: Coords[],
+    heading: Heading,
+    curr: Coords
+): { heading: Heading; nextCoord: Coords } {
     const nextCoord: Coords = {
         x: curr.x + direction[heading].x,
         y: curr.y + direction[heading].y,
     }
-    // console.log(nextCoord)
     const nextTile = board[nextCoord.y][nextCoord.x]
-    if (nextTile === ".") return "dead end"
-
+    if (nextTile === ".") throw "Dead end!!"
+    if (nextTile === "S") return { heading, nextCoord }
     path.push(nextCoord)
 
-    // base case
-    if (nextTile === "S") {
-        return path
-    }
-
     if (nextTile === "-") {
-        if (heading === "left") {
-            walk(board, path, "left", nextCoord)
-        }
-
-        if (heading === "right") {
-            walk(board, path, "right", nextCoord)
-        }
+        return { heading, nextCoord }
     }
 
     if (nextTile === "7") {
         if (heading === "right") {
-            walk(board, path, "down", nextCoord)
+            return { heading: "down", nextCoord }
         }
 
         if (heading === "up") {
-            walk(board, path, "left", nextCoord)
+            return { heading: "left", nextCoord }
         }
     }
 
     if (nextTile === "|") {
-        if (heading === "up") {
-            walk(board, path, "up", nextCoord)
-        }
-
-        if (heading === "down") {
-            walk(board, path, "down", nextCoord)
-        }
+        return { heading, nextCoord }
     }
 
     if (nextTile === "J") {
         if (heading === "down") {
-            walk(board, path, "left", nextCoord)
+            return { heading: "left", nextCoord }
         }
 
         if (heading === "right") {
-            walk(board, path, "up", nextCoord)
+            return { heading: "up", nextCoord }
         }
     }
 
     if (nextTile === "L") {
         if (heading === "down") {
-            walk(board, path, "right", nextCoord)
+            return { heading: "right", nextCoord }
         }
 
         if (heading === "left") {
-            walk(board, path, "up", nextCoord)
+            return { heading: "up", nextCoord }
         }
     }
 
     if (nextTile === "F") {
         if (heading === "up") {
-            walk(board, path, "right", nextCoord)
+            return { heading: "right", nextCoord }
         }
 
         if (heading === "left") {
-            walk(board, path, "down", nextCoord)
+            return { heading: "down", nextCoord }
         }
     }
+
+    throw "Walk: This should never happen!"
 }
 
 function partOne(input: string[]) {
@@ -123,7 +105,6 @@ function partOne(input: string[]) {
     // printBoard(input)
     // console.log(start)
 
-    // TODO: find start heading
     let heading: Heading = "up"
     if (["-", "F"].includes(input[start.y][start.x - 1])) {
         heading = "left"
@@ -138,28 +119,35 @@ function partOne(input: string[]) {
         heading = "up"
     }
 
-    const arr: Coords[] = [start]
-    walk(input, arr, heading, arr[0])
+    const path: Coords[] = [start]
+    let next = walk(input, path, heading, path[0])
+    while (true) {
+        next = walk(input, path, next.heading, next.nextCoord)
 
-    return arr.length / 2
+        if (input[next.nextCoord.y][next.nextCoord.x] === "S") {
+            break
+        }
+    }
 
-    // const circuit: string[][] = []
+    const circuit: string[][] = []
 
-    // for (let y = 0; y < input.length; y += 1) {
-    //     const tmp = []
-    //     for (let x = 0; x < input[0].length; x += 1) {
-    //         tmp.push(".")
-    //     }
-    //     circuit.push(tmp)
-    // }
+    for (let y = 0; y < input.length; y += 1) {
+        const tmp = []
+        for (let x = 0; x < input[0].length; x += 1) {
+            tmp.push(".")
+        }
+        circuit.push(tmp)
+    }
 
-    // for (const { x, y } of arr) {
-    //     circuit[y][x] = "#"
-    // }
+    for (const { x, y } of path) {
+        circuit[y][x] = "#"
+    }
 
-    // for (const row of circuit) {
-    //     console.log(row.join(""))
-    // }
+    for (const row of circuit) {
+        console.log(row.join(""))
+    }
+
+    return path.length / 2
 }
 
 function partTwo(input: string[]) {}
