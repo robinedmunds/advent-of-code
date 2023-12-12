@@ -93,7 +93,7 @@ function walk(
     throw "Walk: This should never happen!"
 }
 
-function partOne(input: string[]) {
+function findCircuitPath(input: string[]) {
     const start: Coords = { x: -1, y: -1 }
     for (let y = 0; y < input.length; y += 1) {
         if (!input[y].includes("S")) continue
@@ -137,8 +137,13 @@ function partOne(input: string[]) {
         }
     }
 
-    const circuit: string[][] = []
+    return path
+}
 
+function partOne(input: string[]) {
+    const circuitPath = findCircuitPath(input)
+
+    const circuit: string[][] = []
     for (let y = 0; y < input.length; y += 1) {
         const tmp = []
         for (let x = 0; x < input[0].length; x += 1) {
@@ -146,27 +151,81 @@ function partOne(input: string[]) {
         }
         circuit.push(tmp)
     }
-
-    for (const { x, y } of path) {
+    for (const { x, y } of circuitPath) {
         circuit[y][x] = "#"
     }
-
     for (const row of circuit) {
         console.log(row.join(""))
     }
 
-    return path.length / 2
+    return circuitPath.length / 2
 }
 
-function partTwo(input: string[]) {}
+function partTwo(input: string[]) {
+    const circuitPath = findCircuitPath(input)
+
+    const circuit: string[][] = []
+    for (let y = 0; y < input.length; y += 1) {
+        const tmp = []
+        for (let x = 0; x < input[0].length; x += 1) {
+            tmp.push(".")
+        }
+        circuit.push(tmp)
+    }
+    for (const { x, y } of circuitPath) {
+        circuit[y][x] = input[y][x]
+    }
+    for (const row of circuit) {
+        console.log(row.join(""))
+    }
+
+    // find all .
+    // iterate over all dots
+    // look for escape path to edge, up, right, down, left
+    // if escape route found, mark adjacent . open
+    // mark the rest, enclosed
+    const dots: Coords[] = []
+    for (let y = 1; y < circuit.length - 1; y += 1) {
+        for (let x = 1; x < circuit[0].length - 1; x += 1) {
+            if (circuit[y][x] === ".") {
+                dots.push({ x, y })
+            }
+        }
+    }
+
+    const escapeRoutes: number[] = Array(dots.length).fill(0)
+    for (let i = 0; i < dots.length; i += 1) {
+        const dot = dots[i]
+        // UP
+        for (let y = dot.y - 1; y >= 0; y -= 1) {
+            const leftPair = [circuit[y][dot.x - 1], circuit[y][dot.x]].join()
+            const rightPair = [circuit[y][dot.x], circuit[y][dot.x + 1]].join()
+
+            const OPEN_LEFTS = ["|", "J", "7"]
+            const OPEN_RIGHTS = ["L", "|", "F"]
+
+            if (
+                OPEN_LEFTS.includes(leftPair[0]) &&
+                OPEN_RIGHTS.includes(leftPair[1])
+            ) {
+                escapeRoutes[i] += 1
+            }
+        }
+    }
+
+    // console.log(dots)
+
+    return
+}
 
 const inputTest = parseInput("src/10/input.test3.txt")
-// const input = parseInput("src/10/input.txt")
+const input = parseInput("src/10/input.txt")
 
 console.log("DAY 10")
-console.log(partOne(inputTest))
+// console.log(partOne(inputTest))
 // console.log(partOne(input))
-// console.log(partTwo(hands))
+// console.log(partTwo(inputTest))
+console.log(partTwo(input))
 
 // -L|F7
 // 7S-7|
